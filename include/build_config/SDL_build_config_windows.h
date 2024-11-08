@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2022 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -23,7 +23,7 @@
 #define SDL_build_config_windows_h_
 #define SDL_build_config_h_
 
-#include <SDL3/SDL_platform.h>
+#include <SDL3/SDL_platform_defines.h>
 
 /* winsdkver.h defines _WIN32_MAXVER for SDK version detection. It is present since at least the Windows 7 SDK,
  * but out of caution we'll only use it if the compiler supports __has_include() to confirm its presence.
@@ -86,14 +86,12 @@ typedef unsigned int uintptr_t;
 #define HAVE_DXGI_H 1
 #define HAVE_XINPUT_H 1
 #if defined(_WIN32_MAXVER) && _WIN32_MAXVER >= 0x0A00  /* Windows 10 SDK */
+#define HAVE_DXGI1_6_H 1
 #define HAVE_WINDOWS_GAMING_INPUT_H 1
 #endif
 #if defined(_WIN32_MAXVER) && _WIN32_MAXVER >= 0x0602  /* Windows 8 SDK */
 #define HAVE_D3D11_H 1
 #define HAVE_ROAPI_H 1
-#endif
-#if defined(WDK_NTDDI_VERSION) && WDK_NTDDI_VERSION > 0x0A000008 /* 10.0.19041.0 */
-#define HAVE_D3D12_H 1
 #endif
 #if defined(_WIN32_MAXVER) && _WIN32_MAXVER >= 0x0603  /* Windows 8.1 SDK */
 #define HAVE_SHELLSCALINGAPI_H 1
@@ -102,23 +100,31 @@ typedef unsigned int uintptr_t;
 #define HAVE_AUDIOCLIENT_H 1
 #define HAVE_TPCSHRD_H 1
 #define HAVE_SENSORSAPI_H 1
+#if defined(__has_include) && __has_include(<gameinput.h>)
+#define HAVE_GAMEINPUT_H 1
+#endif
 #if (defined(_M_IX86) || defined(_M_X64) || defined(_M_AMD64)) && (defined(_MSC_VER) && _MSC_VER >= 1600)
-#define HAVE_IMMINTRIN_H 1
 #elif defined(__has_include) && (defined(__i386__) || defined(__x86_64))
-# if __has_include(<immintrin.h>)
-#   define HAVE_IMMINTRIN_H 1
+# if !__has_include(<immintrin.h>)
+#   define SDL_DISABLE_AVX 1
 # endif
+#else
+# define SDL_DISABLE_AVX 1
 #endif
 
-/* This is disabled by default to avoid C runtime dependencies and manifest requirements */
-#ifdef HAVE_LIBC
+/* This can be disabled to avoid C runtime dependencies and manifest requirements */
+#ifndef HAVE_LIBC
+#define HAVE_LIBC   1
+#endif
+
+#if HAVE_LIBC
 /* Useful headers */
-#define HAVE_CTYPE_H 1
 #define HAVE_FLOAT_H 1
 #define HAVE_LIMITS_H 1
 #define HAVE_MATH_H 1
 #define HAVE_SIGNAL_H 1
 #define HAVE_STDARG_H 1
+#define HAVE_STDBOOL_H 1
 #define HAVE_STDDEF_H 1
 #define HAVE_STDIO_H 1
 #define HAVE_STDLIB_H 1
@@ -130,9 +136,6 @@ typedef unsigned int uintptr_t;
 #define HAVE_CALLOC 1
 #define HAVE_REALLOC 1
 #define HAVE_FREE 1
-#define HAVE_ALLOCA 1
-#define HAVE_QSORT 1
-#define HAVE_BSEARCH 1
 #define HAVE_ABS 1
 #define HAVE_MEMSET 1
 #define HAVE_MEMCPY 1
@@ -157,11 +160,11 @@ typedef unsigned int uintptr_t;
 #define HAVE_ATOF 1
 #define HAVE_STRCMP 1
 #define HAVE_STRNCMP 1
-#define HAVE__STRICMP 1
-#define HAVE__STRNICMP 1
-#define HAVE__WCSICMP 1
-#define HAVE__WCSNICMP 1
+#define HAVE_STRPBRK 1
 #define HAVE__WCSDUP 1
+#define HAVE_SSCANF 1
+#define HAVE_VSSCANF 1
+#define HAVE_VSNPRINTF 1
 #define HAVE_ACOS   1
 #define HAVE_ASIN   1
 #define HAVE_ATAN   1
@@ -172,6 +175,10 @@ typedef unsigned int uintptr_t;
 #define HAVE_FABS   1
 #define HAVE_FLOOR  1
 #define HAVE_FMOD   1
+#define HAVE_ISINF  1
+#define HAVE_ISINF_FLOAT_MACRO 1
+#define HAVE_ISNAN  1
+#define HAVE_ISNAN_FLOAT_MACRO 1
 #define HAVE_LOG    1
 #define HAVE_LOG10  1
 #define HAVE_POW    1
@@ -195,7 +202,7 @@ typedef unsigned int uintptr_t;
 #define HAVE_SINF   1
 #define HAVE_SQRTF  1
 #define HAVE_TANF   1
-#if defined(_MSC_VER)
+#ifdef _MSC_VER
 /* These functions were added with the VC++ 2013 C runtime library */
 #if _MSC_VER >= 1800
 #define HAVE_STRTOLL 1
@@ -231,17 +238,20 @@ typedef unsigned int uintptr_t;
 
 /* Enable various input drivers */
 #define SDL_JOYSTICK_DINPUT 1
-#define SDL_JOYSTICK_HIDAPI 1
-#ifndef __WINRT__
-#define SDL_JOYSTICK_RAWINPUT   1
+#ifdef HAVE_GAMEINPUT_H
+#define SDL_JOYSTICK_GAMEINPUT 1
 #endif
+#define SDL_JOYSTICK_HIDAPI 1
+#define SDL_JOYSTICK_RAWINPUT   1
 #define SDL_JOYSTICK_VIRTUAL    1
 #ifdef HAVE_WINDOWS_GAMING_INPUT_H
 #define SDL_JOYSTICK_WGI    1
 #endif
 #define SDL_JOYSTICK_XINPUT 1
 #define SDL_HAPTIC_DINPUT   1
-#define SDL_HAPTIC_XINPUT   1
+
+/* Enable various process implementations */
+#define SDL_PROCESS_WINDOWS 1
 
 /* Enable the sensor driver */
 #ifdef HAVE_SENSORSAPI_H
@@ -255,54 +265,54 @@ typedef unsigned int uintptr_t;
 
 /* Enable various threading systems */
 #define SDL_THREAD_GENERIC_COND_SUFFIX 1
+#define SDL_THREAD_GENERIC_RWLOCK_SUFFIX 1
 #define SDL_THREAD_WINDOWS  1
+
+/* Enable RTC system */
+#define SDL_TIME_WINDOWS   1
 
 /* Enable various timer systems */
 #define SDL_TIMER_WINDOWS   1
 
 /* Enable various video drivers */
-#define SDL_VIDEO_DRIVER_DUMMY  1
-#define SDL_VIDEO_DRIVER_WINDOWS    1
-
-#ifndef SDL_VIDEO_RENDER_D3D
-#define SDL_VIDEO_RENDER_D3D    1
+#define SDL_VIDEO_DRIVER_DUMMY 1
+#define SDL_VIDEO_DRIVER_OFFSCREEN 1
+#define SDL_VIDEO_DRIVER_WINDOWS 1
+#define SDL_VIDEO_RENDER_D3D 1
+#ifdef HAVE_D3D11_H
+#define SDL_VIDEO_RENDER_D3D11 1
 #endif
-#if !defined(SDL_VIDEO_RENDER_D3D11) && defined(HAVE_D3D11_H)
-#define SDL_VIDEO_RENDER_D3D11  1
-#endif
-#if !defined(SDL_VIDEO_RENDER_D3D12) && defined(HAVE_D3D12_H)
-#define SDL_VIDEO_RENDER_D3D12  1
-#endif
+#define SDL_VIDEO_RENDER_D3D12 1
 
 /* Enable OpenGL support */
-#ifndef SDL_VIDEO_OPENGL
-#define SDL_VIDEO_OPENGL    1
-#endif
-#ifndef SDL_VIDEO_OPENGL_WGL
-#define SDL_VIDEO_OPENGL_WGL    1
-#endif
-#ifndef SDL_VIDEO_RENDER_OGL
-#define SDL_VIDEO_RENDER_OGL    1
-#endif
-#ifndef SDL_VIDEO_RENDER_OGL_ES2
-#define SDL_VIDEO_RENDER_OGL_ES2    1
-#endif
-#ifndef SDL_VIDEO_OPENGL_ES2
-#define SDL_VIDEO_OPENGL_ES2    1
-#endif
-#ifndef SDL_VIDEO_OPENGL_EGL
-#define SDL_VIDEO_OPENGL_EGL    1
-#endif
+#define SDL_VIDEO_OPENGL 1
+#define SDL_VIDEO_OPENGL_WGL 1
+#define SDL_VIDEO_RENDER_OGL 1
+#define SDL_VIDEO_RENDER_OGL_ES2 1
+#define SDL_VIDEO_OPENGL_ES2 1
+#define SDL_VIDEO_OPENGL_EGL 1
 
 /* Enable Vulkan support */
 #define SDL_VIDEO_VULKAN 1
+#define SDL_VIDEO_RENDER_VULKAN 1
+
+/* Enable GPU support */
+#ifdef HAVE_D3D11_H
+#define SDL_GPU_D3D11 1
+#endif
+#define SDL_GPU_D3D12 1
+#define SDL_GPU_VULKAN 1
+#define SDL_VIDEO_RENDER_GPU 1
 
 /* Enable system power support */
 #define SDL_POWER_WINDOWS 1
 
 /* Enable filesystem support */
 #define SDL_FILESYSTEM_WINDOWS  1
+#define SDL_FSOPS_WINDOWS 1
+
+/* Enable the camera driver */
+#define SDL_CAMERA_DRIVER_MEDIAFOUNDATION 1
+#define SDL_CAMERA_DRIVER_DUMMY 1
 
 #endif /* SDL_build_config_windows_h_ */
-
-/* vi: set ts=4 sw=4 expandtab: */

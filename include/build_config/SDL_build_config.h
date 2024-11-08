@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2022 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -22,30 +22,30 @@
 #ifndef SDL_build_config_h_
 #define SDL_build_config_h_
 
-#include <SDL3/SDL_platform.h>
+#include <SDL3/SDL_platform_defines.h>
 
 /**
  *  \file SDL_build_config.h
+ *
+ *  This is a set of defines to configure the SDL features
  */
 
 /* Add any platform that doesn't build using the configure system. */
-#if defined(__WIN32__)
+#if defined(SDL_PLATFORM_PRIVATE)
+#include "SDL_build_config_private.h"
+#elif defined(SDL_PLATFORM_WIN32)
 #include "SDL_build_config_windows.h"
-#elif defined(__WINRT__)
-#include "SDL_build_config_winrt.h"
-#elif defined(__WINGDK__)
+#elif defined(SDL_PLATFORM_WINGDK)
 #include "SDL_build_config_wingdk.h"
-#elif defined(__XBOXONE__) || defined(__XBOXSERIES__)
+#elif defined(SDL_PLATFORM_XBOXONE) || defined(SDL_PLATFORM_XBOXSERIES)
 #include "SDL_build_config_xbox.h"
-#elif defined(__MACOS__)
+#elif defined(SDL_PLATFORM_MACOS)
 #include "SDL_build_config_macos.h"
-#elif defined(__IOS__)
+#elif defined(SDL_PLATFORM_IOS)
 #include "SDL_build_config_ios.h"
-#elif defined(__ANDROID__)
+#elif defined(SDL_PLATFORM_ANDROID)
 #include "SDL_build_config_android.h"
-#elif defined(__EMSCRIPTEN__)
-#include "SDL_build_config_emscripten.h"
-#elif defined(__NGAGE__)
+#elif defined(SDL_PLATFORM_NGAGE)
 #include "SDL_build_config_ngage.h"
 #else
 /* This is a minimal configuration just to get SDL running on new platforms. */

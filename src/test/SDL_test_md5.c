@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2022 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -110,7 +110,7 @@ static unsigned char MD5PADDING[64] = {
 
 void SDLTest_Md5Init(SDLTest_Md5Context *mdContext)
 {
-    if (mdContext == NULL) {
+    if (!mdContext) {
         return;
     }
 
@@ -138,10 +138,10 @@ void SDLTest_Md5Update(SDLTest_Md5Context *mdContext, unsigned char *inBuf,
     int mdi;
     unsigned int i, ii;
 
-    if (mdContext == NULL) {
+    if (!mdContext) {
         return;
     }
-    if (inBuf == NULL || inLen < 1) {
+    if (!inBuf || inLen < 1) {
         return;
     }
 
@@ -190,7 +190,7 @@ void SDLTest_Md5Final(SDLTest_Md5Context *mdContext)
     unsigned int i, ii;
     unsigned int padLen;
 
-    if (mdContext == NULL) {
+    if (!mdContext) {
         return;
     }
 
@@ -340,5 +340,3 @@ static void SDLTest_Md5Transform(MD5UINT4 *buf, const MD5UINT4 *in)
     buf[2] += c;
     buf[3] += d;
 }
-
-/* vi: set ts=4 sw=4 expandtab: */

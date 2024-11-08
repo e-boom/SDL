@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2022 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -20,24 +20,22 @@
 */
 #include "SDL_internal.h"
 
-/* Clipboard event handling code for SDL */
+// Clipboard event handling code for SDL
 
 #include "SDL_events_c.h"
 #include "SDL_clipboardevents_c.h"
 
-int SDL_SendClipboardUpdate(void)
+void SDL_SendClipboardUpdate(bool owner, char **mime_types, size_t n_mime_types)
 {
-    int posted;
-
-    /* Post the event, if desired */
-    posted = 0;
-    if (SDL_GetEventState(SDL_CLIPBOARDUPDATE) == SDL_ENABLE) {
+    if (SDL_EventEnabled(SDL_EVENT_CLIPBOARD_UPDATE)) {
         SDL_Event event;
-        event.type = SDL_CLIPBOARDUPDATE;
-        event.common.timestamp = 0;
-        posted = (SDL_PushEvent(&event) > 0);
-    }
-    return posted;
-}
+        event.type = SDL_EVENT_CLIPBOARD_UPDATE;
 
-/* vi: set ts=4 sw=4 expandtab: */
+        SDL_ClipboardEvent *cevent = &event.clipboard;
+        cevent->timestamp = 0;
+        cevent->owner = owner;
+        cevent->mime_types = (const char **)mime_types;
+        cevent->n_mime_types = (Uint32)n_mime_types;
+        SDL_PushEvent(&event);
+    }
+}

@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2022 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -21,8 +21,8 @@
 
 #include "SDL_internal.h"
 
-#ifndef _SDL_ngagevideo_h
-#define _SDL_ngagevideo_h
+#ifndef SDL_ngagevideo_h
+#define SDL_ngagevideo_h
 
 #include "../SDL_sysvideo.h"
 
@@ -32,11 +32,11 @@
 #include <w32std.h>
 #include "bitdraw.h" // CFbsDrawDevice
 
-#define _THIS SDL_VideoDevice *_this
+#define SDL_VideoDevice *_this SDL_VideoDevice *_this
 
-typedef struct SDL_VideoData
+struct SDL_VideoData
 {
-    /* Epoc window server info */
+    // Epoc window server info
     RWsSession NGAGE_WsSession;
     RWindowGroup NGAGE_WsWindowGroup;
     TInt NGAGE_WsWindowGroupID;
@@ -47,9 +47,9 @@ typedef struct SDL_VideoData
     TRequestStatus NGAGE_RedrawEventStatus;
     TWsEvent NGAGE_WsEvent;
     CFbsDrawDevice *NGAGE_DrawDevice;
-    TBool NGAGE_IsWindowFocused; /* Not used yet */
+    TBool NGAGE_IsWindowFocused; // Not used yet
 
-    /* Screen hardware frame buffer info */
+    // Screen hardware frame buffer info
     TBool NGAGE_HasFrameBuffer;
     TInt NGAGE_BytesPerPixel;
     TInt NGAGE_BytesPerScanLine;
@@ -60,9 +60,6 @@ typedef struct SDL_VideoData
     TPoint NGAGE_ScreenOffset;
 
     CFbsBitGc::TGraphicsOrientation NGAGE_ScreenOrientation;
+};
 
-} SDL_VideoData;
-
-#endif /* _SDL_ngagevideo_h */
-
-/* vi: set ts=4 sw=4 expandtab: */
+#endif // SDL_ngagevideo_h

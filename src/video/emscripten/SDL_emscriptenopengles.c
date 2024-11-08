@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2022 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -20,7 +20,7 @@
 */
 #include "SDL_internal.h"
 
-#if SDL_VIDEO_DRIVER_EMSCRIPTEN
+#ifdef SDL_VIDEO_DRIVER_EMSCRIPTEN
 
 #include <emscripten/emscripten.h>
 #include <emscripten/html5_webgl.h>
@@ -29,22 +29,21 @@
 #include "SDL_emscriptenvideo.h"
 #include "SDL_emscriptenopengles.h"
 
-int Emscripten_GLES_LoadLibrary(_THIS, const char *path)
+bool Emscripten_GLES_LoadLibrary(SDL_VideoDevice *_this, const char *path)
 {
-    return 0;
+    return true;
 }
 
-void Emscripten_GLES_UnloadLibrary(_THIS)
+void Emscripten_GLES_UnloadLibrary(SDL_VideoDevice *_this)
 {
 }
 
-void *
-Emscripten_GLES_GetProcAddress(_THIS, const char *proc)
+SDL_FunctionPointer Emscripten_GLES_GetProcAddress(SDL_VideoDevice *_this, const char *proc)
 {
     return emscripten_webgl_get_proc_address(proc);
 }
 
-int Emscripten_GLES_SetSwapInterval(_THIS, int interval)
+bool Emscripten_GLES_SetSwapInterval(SDL_VideoDevice *_this, int interval)
 {
     if (interval < 0) {
         return SDL_SetError("Late swap tearing currently unsupported");
@@ -54,23 +53,25 @@ int Emscripten_GLES_SetSwapInterval(_THIS, int interval)
         emscripten_set_main_loop_timing(EM_TIMING_RAF, interval);
     }
 
-    return 0;
+    return true;
 }
 
-int Emscripten_GLES_GetSwapInterval(_THIS)
+bool Emscripten_GLES_GetSwapInterval(SDL_VideoDevice *_this, int *interval)
 {
     int mode, value;
 
     emscripten_get_main_loop_timing(&mode, &value);
 
-    if (mode == EM_TIMING_RAF)
-        return value;
-
-    return 0;
+    if (mode == EM_TIMING_RAF) {
+        *interval = value;
+        return true;
+    } else {
+        *interval = 0;
+        return true;
+    }
 }
 
-SDL_GLContext
-Emscripten_GLES_CreateContext(_THIS, SDL_Window *window)
+SDL_GLContext Emscripten_GLES_CreateContext(SDL_VideoDevice *_this, SDL_Window *window)
 {
     SDL_WindowData *window_data;
 
@@ -85,9 +86,9 @@ Emscripten_GLES_CreateContext(_THIS, SDL_Window *window)
     attribs.antialias = _this->gl_config.multisamplebuffers == 1;
 
     if (_this->gl_config.major_version == 3)
-        attribs.majorVersion = 2; /* WebGL 2.0 ~= GLES 3.0 */
+        attribs.majorVersion = 2; // WebGL 2.0 ~= GLES 3.0
 
-    window_data = (SDL_WindowData *)window->driverdata;
+    window_data = window->internal;
 
     if (window_data->gl_context) {
         SDL_SetError("Cannot create multiple webgl contexts per window");
@@ -111,14 +112,13 @@ Emscripten_GLES_CreateContext(_THIS, SDL_Window *window)
     return (SDL_GLContext)context;
 }
 
-void Emscripten_GLES_DeleteContext(_THIS, SDL_GLContext context)
+bool Emscripten_GLES_DestroyContext(SDL_VideoDevice *_this, SDL_GLContext context)
 {
     SDL_Window *window;
 
-    /* remove the context from its window */
-    for (window = _this->windows; window != NULL; window = window->next) {
-        SDL_WindowData *window_data;
-        window_data = (SDL_WindowData *)window->driverdata;
+    // remove the context from its window
+    for (window = _this->windows; window; window = window->next) {
+        SDL_WindowData *window_data = window->internal;
 
         if (window_data->gl_context == context) {
             window_data->gl_context = NULL;
@@ -126,23 +126,23 @@ void Emscripten_GLES_DeleteContext(_THIS, SDL_GLContext context)
     }
 
     emscripten_webgl_destroy_context((EMSCRIPTEN_WEBGL_CONTEXT_HANDLE)context);
+    return true;
 }
 
-int Emscripten_GLES_SwapWindow(_THIS, SDL_Window *window)
+bool Emscripten_GLES_SwapWindow(SDL_VideoDevice *_this, SDL_Window *window)
 {
-    if (emscripten_has_asyncify() && SDL_GetHintBoolean(SDL_HINT_EMSCRIPTEN_ASYNCIFY, SDL_TRUE)) {
-        /* give back control to browser for screen refresh */
+    if (emscripten_has_asyncify() && SDL_GetHintBoolean(SDL_HINT_EMSCRIPTEN_ASYNCIFY, true)) {
+        // give back control to browser for screen refresh
         emscripten_sleep(0);
     }
-    return 0;
+    return true;
 }
 
-int Emscripten_GLES_MakeCurrent(_THIS, SDL_Window *window, SDL_GLContext context)
+bool Emscripten_GLES_MakeCurrent(SDL_VideoDevice *_this, SDL_Window *window, SDL_GLContext context)
 {
-    /* it isn't possible to reuse contexts across canvases */
+    // it isn't possible to reuse contexts across canvases
     if (window && context) {
-        SDL_WindowData *window_data;
-        window_data = (SDL_WindowData *)window->driverdata;
+        SDL_WindowData *window_data = window->internal;
 
         if (context != window_data->gl_context) {
             return SDL_SetError("Cannot make context current to another window");
@@ -152,9 +152,7 @@ int Emscripten_GLES_MakeCurrent(_THIS, SDL_Window *window, SDL_GLContext context
     if (emscripten_webgl_make_context_current((EMSCRIPTEN_WEBGL_CONTEXT_HANDLE)context) != EMSCRIPTEN_RESULT_SUCCESS) {
         return SDL_SetError("Unable to make context current");
     }
-    return 0;
+    return true;
 }
 
-#endif /* SDL_VIDEO_DRIVER_EMSCRIPTEN */
-
-/* vi: set ts=4 sw=4 expandtab: */
+#endif // SDL_VIDEO_DRIVER_EMSCRIPTEN

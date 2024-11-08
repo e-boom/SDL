@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2022 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -25,17 +25,14 @@
 
 #include "SDL_riscosdefs.h"
 
-typedef struct
+struct SDL_WindowData
 {
     SDL_Window *window;
     sprite_area *fb_area;
     sprite_header *fb_sprite;
-} SDL_WindowData;
+};
 
-extern int RISCOS_CreateWindow(_THIS, SDL_Window *window);
-extern void RISCOS_DestroyWindow(_THIS, SDL_Window *window);
-extern int RISCOS_GetWindowWMInfo(_THIS, SDL_Window *window, struct SDL_SysWMinfo *info);
+extern bool RISCOS_CreateWindow(SDL_VideoDevice *_this, SDL_Window *window, SDL_PropertiesID create_props);
+extern void RISCOS_DestroyWindow(SDL_VideoDevice *_this, SDL_Window *window);
 
-#endif /* SDL_riscoswindow_h_ */
-
-/* vi: set ts=4 sw=4 expandtab: */
+#endif // SDL_riscoswindow_h_

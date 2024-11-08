@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2022 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -20,18 +20,23 @@
 */
 #include "SDL_internal.h"
 
+#if defined(SDL_PLATFORM_MACOS)
+
 #include "../SDL_sysurl.h"
 
 #import <Cocoa/Cocoa.h>
 
-int SDL_SYS_OpenURL(const char *url)
+bool SDL_SYS_OpenURL(const char *url)
 {
     @autoreleasepool {
         CFURLRef cfurl = CFURLCreateWithBytes(NULL, (const UInt8 *)url, SDL_strlen(url), kCFStringEncodingUTF8, NULL);
         OSStatus status = LSOpenCFURLRef(cfurl, NULL);
         CFRelease(cfurl);
-        return status == noErr ? 0 : -1;
+        if (status != noErr) {
+            return SDL_SetError("LSOpenCFURLRef() failed: %d", status);
+        }
+        return true;
     }
 }
 
-/* vi: set ts=4 sw=4 expandtab: */
+#endif // SDL_PLATFORM_MACOS

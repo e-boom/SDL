@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2022 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -20,7 +20,7 @@
 */
 #include "SDL_internal.h"
 
-#if SDL_VIDEO_DRIVER_VITA && SDL_VIDEO_VITA_PVR
+#if defined(SDL_VIDEO_DRIVER_VITA) && defined(SDL_VIDEO_VITA_PVR)
 #include <stdlib.h>
 #include <string.h>
 #include <psp2/kernel/modulemgr.h>
@@ -32,64 +32,61 @@
 
 #define MAX_PATH 256 // vita limits are somehow wrong
 
-int VITA_GLES_LoadLibrary(_THIS, const char *path)
+bool VITA_GLES_LoadLibrary(SDL_VideoDevice *_this, const char *path)
 {
     PVRSRV_PSP2_APPHINT hint;
-    char *override = SDL_getenv("VITA_MODULE_PATH");
-    char *skip_init = SDL_getenv("VITA_PVR_SKIP_INIT");
-    char *default_path = "app0:module";
+    const char *default_path = "app0:module";
     char target_path[MAX_PATH];
 
-    if (skip_init == NULL) // we don't care about actual value {
-        if (override != NULL) {
+    if (SDL_GetHintBoolean(SDL_HINT_VITA_PVR_INIT, true)) {
+        const char *override = SDL_GetHint(SDL_HINT_VITA_MODULE_PATH);
+
+        if (override && *override) {
             default_path = override;
         }
 
-    sceKernelLoadStartModule("vs0:sys/external/libfios2.suprx", 0, NULL, 0, NULL, NULL);
-    sceKernelLoadStartModule("vs0:sys/external/libc.suprx", 0, NULL, 0, NULL, NULL);
+        sceKernelLoadStartModule("vs0:sys/external/libfios2.suprx", 0, NULL, 0, NULL, NULL);
+        sceKernelLoadStartModule("vs0:sys/external/libc.suprx", 0, NULL, 0, NULL, NULL);
 
-    SDL_snprintf(target_path, MAX_PATH, "%s/%s", default_path, "libgpu_es4_ext.suprx");
-    sceKernelLoadStartModule(target_path, 0, NULL, 0, NULL, NULL);
+        SDL_snprintf(target_path, MAX_PATH, "%s/%s", default_path, "libgpu_es4_ext.suprx");
+        sceKernelLoadStartModule(target_path, 0, NULL, 0, NULL, NULL);
 
-    SDL_snprintf(target_path, MAX_PATH, "%s/%s", default_path, "libIMGEGL.suprx");
-    sceKernelLoadStartModule(target_path, 0, NULL, 0, NULL, NULL);
+        SDL_snprintf(target_path, MAX_PATH, "%s/%s", default_path, "libIMGEGL.suprx");
+        sceKernelLoadStartModule(target_path, 0, NULL, 0, NULL, NULL);
 
-    PVRSRVInitializeAppHint(&hint);
+        PVRSRVInitializeAppHint(&hint);
 
-    SDL_snprintf(hint.szGLES1, MAX_PATH, "%s/%s", default_path, "libGLESv1_CM.suprx");
-    SDL_snprintf(hint.szGLES2, MAX_PATH, "%s/%s", default_path, "libGLESv2.suprx");
-    SDL_snprintf(hint.szWindowSystem, MAX_PATH, "%s/%s", default_path, "libpvrPSP2_WSEGL.suprx");
+        SDL_snprintf(hint.szGLES1, MAX_PATH, "%s/%s", default_path, "libGLESv1_CM.suprx");
+        SDL_snprintf(hint.szGLES2, MAX_PATH, "%s/%s", default_path, "libGLESv2.suprx");
+        SDL_snprintf(hint.szWindowSystem, MAX_PATH, "%s/%s", default_path, "libpvrPSP2_WSEGL.suprx");
 
-    PVRSRVCreateVirtualAppHint(&hint);
+        PVRSRVCreateVirtualAppHint(&hint);
+    }
+
+    return SDL_EGL_LoadLibrary(_this, path, (NativeDisplayType)0, 0);
 }
 
-return SDL_EGL_LoadLibrary(_this, path, (NativeDisplayType)0, 0);
-}
-
-SDL_GLContext
-VITA_GLES_CreateContext(_THIS, SDL_Window *window)
+SDL_GLContext VITA_GLES_CreateContext(SDL_VideoDevice *_this, SDL_Window *window)
 {
-    return SDL_EGL_CreateContext(_this, ((SDL_WindowData *)window->driverdata)->egl_surface);
+    return SDL_EGL_CreateContext(_this, window->internal->egl_surface);
 }
 
-int VITA_GLES_MakeCurrent(_THIS, SDL_Window *window, SDL_GLContext context)
+bool VITA_GLES_MakeCurrent(SDL_VideoDevice *_this, SDL_Window *window, SDL_GLContext context)
 {
     if (window && context) {
-        return SDL_EGL_MakeCurrent(_this, ((SDL_WindowData *)window->driverdata)->egl_surface, context);
+        return SDL_EGL_MakeCurrent(_this, window->internal->egl_surface, context);
     } else {
         return SDL_EGL_MakeCurrent(_this, NULL, NULL);
     }
 }
 
-int VITA_GLES_SwapWindow(_THIS, SDL_Window *window)
+bool VITA_GLES_SwapWindow(SDL_VideoDevice *_this, SDL_Window *window)
 {
-    SDL_VideoData *videodata = (SDL_VideoData *)_this->driverdata;
+    SDL_VideoData *videodata = _this->internal;
     if (videodata->ime_active) {
         sceImeUpdate();
     }
-    return SDL_EGL_SwapBuffers(_this, ((SDL_WindowData *)window->driverdata)->egl_surface);
+    return SDL_EGL_SwapBuffers(_this, window->internal->egl_surface);
 }
 
-#endif /* SDL_VIDEO_DRIVER_VITA && SDL_VIDEO_VITA_PVR */
-
-/* vi: set ts=4 sw=4 expandtab: */
+#endif // SDL_VIDEO_DRIVER_VITA && SDL_VIDEO_VITA_PVR

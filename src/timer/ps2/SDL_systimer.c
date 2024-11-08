@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2022 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -29,19 +29,17 @@
 #include <sys/time.h>
 
 
-Uint64
-SDL_GetPerformanceCounter(void)
+Uint64 SDL_GetPerformanceCounter(void)
 {
     return GetTimerSystemTime();
 }
 
-Uint64
-SDL_GetPerformanceFrequency(void)
+Uint64 SDL_GetPerformanceFrequency(void)
 {
     return kBUSCLK;
 }
 
-void SDL_DelayNS(Uint64 ns)
+void SDL_SYS_DelayNS(Uint64 ns)
 {
     struct timespec tv;
     tv.tv_sec = (ns / SDL_NS_PER_SECOND);
@@ -49,7 +47,4 @@ void SDL_DelayNS(Uint64 ns)
     nanosleep(&tv, NULL);
 }
 
-#endif /* SDL_TIMER_PS2 */
-
-/* vim: ts=4 sw=4
- */
+#endif // SDL_TIMER_PS2

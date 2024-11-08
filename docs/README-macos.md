@@ -13,7 +13,7 @@ To build SDL using the command line, use the CMake build script:
 ```bash
 mkdir build
 cd build
-cmake ..
+cmake .. -DCMAKE_OSX_DEPLOYMENT_TARGET=10.11
 cmake --build .
 sudo cmake --install .
 ```
@@ -25,12 +25,12 @@ You can also build SDL as a Universal library (a single binary for both
 ```bash
 mkdir build
 cd build
-cmake .. "-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64"
+cmake .. "-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64" -DCMAKE_OSX_DEPLOYMENT_TARGET=10.11
 cmake --build .
 sudo cmake --install .
 ```
 
-Please note that building SDL requires at least Xcode 6 and the 10.9 SDK.
+Please note that building SDL requires at least Xcode 12.2 and the 11.0 SDK.
 PowerPC support for macOS has been officially dropped as of SDL 2.0.2.
 32-bit Intel and macOS 10.8 runtime support has been officially dropped as
 of SDL 2.24.0.
@@ -44,7 +44,7 @@ use the traditional autoconf/automake/make method, or use Xcode.
 If you register your own NSApplicationDelegate (using [NSApp setDelegate:]),
 SDL will not register its own. This means that SDL will not terminate using
 SDL_Quit if it receives a termination request, it will terminate like a
-normal app, and it will not send a SDL_DROPFILE when you request to open a
+normal app, and it will not send a SDL_EVENT_DROP_FILE when you request to open a
 file with the app. To solve these issues, put the following code in your
 NSApplicationDelegate implementation:
 
@@ -52,24 +52,26 @@ NSApplicationDelegate implementation:
 ```objc
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender
 {
-    if (SDL_GetEventState(SDL_QUIT) == SDL_ENABLE) {
+    if (SDL_GetEventState(SDL_EVENT_QUIT) == SDL_ENABLE) {
         SDL_Event event;
-        event.type = SDL_QUIT;
+        SDL_zero(event);
+        event.type = SDL_EVENT_QUIT;
         SDL_PushEvent(&event);
     }
-    
+
     return NSTerminateCancel;
 }
-    
+
 - (BOOL)application:(NSApplication *)theApplication openFile:(NSString *)filename
 {
-    if (SDL_GetEventState(SDL_DROPFILE) == SDL_ENABLE) {
+    if (SDL_GetEventState(SDL_EVENT_DROP_FILE) == SDL_ENABLE) {
         SDL_Event event;
-        event.type = SDL_DROPFILE;
+        SDL_zero(event);
+        event.type = SDL_EVENT_DROP_FILE;
         event.drop.file = SDL_strdup([filename UTF8String]);
-        return (SDL_PushEvent(&event) > 0);
+        return SDL_PushEvent(&event);
     }
-    
+
     return NO;
 }
 ```
@@ -163,12 +165,12 @@ normally from the Finder.
 
 The SDL Library is packaged as a framework bundle, an organized
 relocatable folder hierarchy of executable code, interface headers,
-and additional resources. For practical purposes, you can think of a 
+and additional resources. For practical purposes, you can think of a
 framework as a more user and system-friendly shared library, whose library
 file behaves more or less like a standard UNIX shared library.
 
-To build the framework, simply open the framework project and build it. 
-By default, the framework bundle "SDL.framework" is installed in 
+To build the framework, simply open the framework project and build it.
+By default, the framework bundle "SDL.framework" is installed in
 /Library/Frameworks. Therefore, the testers and project stationary expect
 it to be located there. However, it will function the same in any of the
 following locations:
@@ -220,7 +222,7 @@ Use `xcode-build` in the same directory as your .pbxproj file
 You can send command line args to your app by either invoking it from
 the command line (in *.app/Contents/MacOS) or by entering them in the
 Executables" panel of the target settings.
-    
+
 # Implementation Notes
 
 Some things that may be of interest about how it all works...
@@ -228,10 +230,10 @@ Some things that may be of interest about how it all works...
 ## Working directory
 
 In SDL 1.2, the working directory of your SDL app is by default set to its
-parent, but this is no longer the case in SDL 2.0. SDL2 does change the
-working directory, which means it'll be whatever the command line prompt
-that launched the program was using, or if launched by double-clicking in
-the finger, it will be "/", the _root of the filesystem_. Plan accordingly!
+parent, but this is no longer the case in SDL 2.0 and later. SDL2 does not
+change the working directory, which means it'll be whatever the command line
+prompt that launched the program was using, or if launched by double-clicking
+in the Finder, it will be "/", the _root of the filesystem_. Plan accordingly!
 You can use SDL_GetBasePath() to find where the program is running from and
 chdir() there directly.
 

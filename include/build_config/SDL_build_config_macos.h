@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2022 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -23,7 +23,7 @@
 #define SDL_build_config_macos_h_
 #define SDL_build_config_h_
 
-#include <SDL3/SDL_platform.h>
+#include <SDL3/SDL_platform_defines.h>
 
 /* This gets us MAC_OS_X_VERSION_MIN_REQUIRED... */
 #include <AvailabilityMacros.h>
@@ -32,7 +32,6 @@
 
 /* Useful headers */
 #define HAVE_ALLOCA_H 1
-#define HAVE_CTYPE_H 1
 #define HAVE_FLOAT_H 1
 #define HAVE_INTTYPES_H 1
 #define HAVE_LIBUNWIND_H 1
@@ -40,6 +39,7 @@
 #define HAVE_MATH_H 1
 #define HAVE_SIGNAL_H 1
 #define HAVE_STDARG_H 1
+#define HAVE_STDBOOL_H 1
 #define HAVE_STDDEF_H 1
 #define HAVE_STDINT_H 1
 #define HAVE_STDIO_H 1
@@ -49,18 +49,17 @@
 #define HAVE_WCHAR_H 1
 
 /* C library functions */
+#define HAVE_LIBC   1
 #define HAVE_DLOPEN 1
 #define HAVE_MALLOC 1
 #define HAVE_CALLOC 1
 #define HAVE_REALLOC    1
 #define HAVE_FREE   1
-#define HAVE_ALLOCA 1
 #define HAVE_GETENV 1
+#define HAVE_GETHOSTNAME 1
 #define HAVE_SETENV 1
 #define HAVE_PUTENV 1
 #define HAVE_UNSETENV   1
-#define HAVE_QSORT  1
-#define HAVE_BSEARCH 1
 #define HAVE_ABS    1
 #define HAVE_BCOPY  1
 #define HAVE_MEMSET 1
@@ -70,6 +69,7 @@
 #define HAVE_STRLEN 1
 #define HAVE_STRLCPY    1
 #define HAVE_STRLCAT    1
+#define HAVE_STRPBRK    1
 #define HAVE_STRCHR 1
 #define HAVE_STRRCHR    1
 #define HAVE_STRSTR 1
@@ -83,8 +83,6 @@
 #define HAVE_ATOF   1
 #define HAVE_STRCMP 1
 #define HAVE_STRNCMP    1
-#define HAVE_STRCASECMP 1
-#define HAVE_STRNCASECMP 1
 #define HAVE_STRCASESTR 1
 #define HAVE_VSSCANF 1
 #define HAVE_VSNPRINTF  1
@@ -110,12 +108,18 @@
 #define HAVE_FLOORF 1
 #define HAVE_FMOD   1
 #define HAVE_FMODF  1
+#define HAVE_ISINF  1
+#define HAVE_ISINF_FLOAT_MACRO 1
+#define HAVE_ISNAN  1
+#define HAVE_ISNAN_FLOAT_MACRO 1
 #define HAVE_LOG    1
 #define HAVE_LOGF   1
 #define HAVE_LOG10  1
 #define HAVE_LOG10F 1
 #define HAVE_LROUND 1
 #define HAVE_LROUNDF 1
+#define HAVE_MODF   1
+#define HAVE_MODFF  1
 #define HAVE_POW    1
 #define HAVE_POWF   1
 #define HAVE_ROUND  1
@@ -133,12 +137,15 @@
 #define HAVE_SIGACTION  1
 #define HAVE_SETJMP 1
 #define HAVE_NANOSLEEP  1
+#define HAVE_GMTIME_R 1
+#define HAVE_LOCALTIME_R 1
+#define HAVE_NL_LANGINFO 1
 #define HAVE_SYSCONF    1
 #define HAVE_SYSCTLBYNAME 1
 
 #if defined(__has_include) && (defined(__i386__) || defined(__x86_64))
-# if __has_include(<immintrin.h>)
-#   define HAVE_IMMINTRIN_H 1
+# if !__has_include(<immintrin.h>)
+#   define SDL_DISABLE_AVX 1
 # endif
 #endif
 
@@ -164,6 +171,9 @@
 #define SDL_JOYSTICK_MFI 1
 #endif
 
+/* Enable various process implementations */
+#define SDL_PROCESS_POSIX 1
+
 /* Enable the dummy sensor driver */
 #define SDL_SENSOR_DUMMY  1
 
@@ -174,12 +184,16 @@
 #define SDL_THREAD_PTHREAD  1
 #define SDL_THREAD_PTHREAD_RECURSIVE_MUTEX  1
 
+/* Enable various RTC system */
+#define SDL_TIME_UNIX  1
+
 /* Enable various timer systems */
 #define SDL_TIMER_UNIX  1
 
 /* Enable various video drivers */
 #define SDL_VIDEO_DRIVER_COCOA  1
 #define SDL_VIDEO_DRIVER_DUMMY  1
+#define SDL_VIDEO_DRIVER_OFFSCREEN 1
 #undef SDL_VIDEO_DRIVER_X11
 #define SDL_VIDEO_DRIVER_X11_DYNAMIC "/opt/X11/lib/libX11.6.dylib"
 #define SDL_VIDEO_DRIVER_X11_DYNAMIC_XEXT "/opt/X11/lib/libXext.6.dylib"
@@ -190,7 +204,7 @@
 #define SDL_VIDEO_DRIVER_X11_XRANDR 1
 #define SDL_VIDEO_DRIVER_X11_XSCRNSAVER 1
 #define SDL_VIDEO_DRIVER_X11_XSHAPE 1
-#define SDL_VIDEO_DRIVER_X11_HAS_XKBKEYCODETOKEYSYM 1
+#define SDL_VIDEO_DRIVER_X11_HAS_XKBLOOKUPKEYSYM 1
 
 #ifdef MAC_OS_X_VERSION_10_8
 /*
@@ -202,61 +216,32 @@
 #define SDL_VIDEO_DRIVER_X11_SUPPORTS_GENERIC_EVENTS 1
 #endif
 
-#ifndef SDL_VIDEO_RENDER_OGL
 #define SDL_VIDEO_RENDER_OGL    1
-#endif
-
-#ifndef SDL_VIDEO_RENDER_OGL_ES2
 #define SDL_VIDEO_RENDER_OGL_ES2 1
-#endif
 
 /* Metal only supported on 64-bit architectures with 10.11+ */
 #if TARGET_RT_64_BIT && (MAC_OS_X_VERSION_MAX_ALLOWED >= 101100)
-#define SDL_PLATFORM_SUPPORTS_METAL    1
-#else
-#define SDL_PLATFORM_SUPPORTS_METAL    0
+#define SDL_PLATFORM_SUPPORTS_METAL 1
 #endif
 
-#ifndef SDL_VIDEO_RENDER_METAL
-#if SDL_PLATFORM_SUPPORTS_METAL
-#define SDL_VIDEO_RENDER_METAL    1
-#else
-#define SDL_VIDEO_RENDER_METAL    0
-#endif
+#ifdef SDL_PLATFORM_SUPPORTS_METAL
+#define SDL_VIDEO_RENDER_METAL 1
 #endif
 
 /* Enable OpenGL support */
-#ifndef SDL_VIDEO_OPENGL
-#define SDL_VIDEO_OPENGL    1
-#endif
-#ifndef SDL_VIDEO_OPENGL_ES2
-#define SDL_VIDEO_OPENGL_ES2    1
-#endif
-#ifndef SDL_VIDEO_OPENGL_EGL
-#define SDL_VIDEO_OPENGL_EGL    1
-#endif
-#ifndef SDL_VIDEO_OPENGL_CGL
-#define SDL_VIDEO_OPENGL_CGL    1
-#endif
-#ifndef SDL_VIDEO_OPENGL_GLX
-#define SDL_VIDEO_OPENGL_GLX    1
-#endif
+#define SDL_VIDEO_OPENGL 1
+#define SDL_VIDEO_OPENGL_ES2 1
+#define SDL_VIDEO_OPENGL_EGL 1
+#define SDL_VIDEO_OPENGL_CGL 1
+#define SDL_VIDEO_OPENGL_GLX 1
 
 /* Enable Vulkan and Metal support */
-#ifndef SDL_VIDEO_VULKAN
-#if SDL_PLATFORM_SUPPORTS_METAL
-#define SDL_VIDEO_VULKAN 1
-#else
-#define SDL_VIDEO_VULKAN 0
-#endif
-#endif
-
-#ifndef SDL_VIDEO_METAL
-#if SDL_PLATFORM_SUPPORTS_METAL
+#ifdef SDL_PLATFORM_SUPPORTS_METAL
 #define SDL_VIDEO_METAL 1
-#else
-#define SDL_VIDEO_METAL 0
-#endif
+#define SDL_GPU_METAL 1
+#define SDL_VIDEO_VULKAN 1
+#define SDL_GPU_VULKAN 1
+#define SDL_VIDEO_RENDER_GPU 1
 #endif
 
 /* Enable system power support */
@@ -264,6 +249,11 @@
 
 /* enable filesystem support */
 #define SDL_FILESYSTEM_COCOA   1
+#define SDL_FSOPS_POSIX 1
+
+/* enable camera support */
+#define SDL_CAMERA_DRIVER_COREMEDIA 1
+#define SDL_CAMERA_DRIVER_DUMMY 1
 
 /* Enable assembly routines */
 #ifdef __ppc__

@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2022 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -20,13 +20,11 @@
 */
 #include "SDL_internal.h"
 
-/* An implementation of semaphores using the Symbian API. */
+// An implementation of semaphores using the Symbian API.
 
 #include <e32std.h>
 
-#define SDL_MUTEX_TIMEOUT -2
-
-struct SDL_semaphore
+struct SDL_Semaphore
 {
     TInt handle;
     TInt count;
@@ -34,10 +32,10 @@ struct SDL_semaphore
 
 struct TInfo
 {
-    TInfo(TInt aTime, TInt aHandle) : iTime(aTime), iHandle(aHandle), iVal(0) {}
+    TInfo(TInt aTime, TInt aHandle) : iTime(aTime), iHandle(aHandle), iVal(true) {}
     TInt iTime;
     TInt iHandle;
-    TInt iVal;
+    bool iVal;
 };
 
 extern TInt CreateUnique(TInt (*aFunc)(const TDesC &aName, TAny *, TAny *), TAny *, TAny *);
@@ -49,7 +47,7 @@ static TBool RunThread(TAny *aInfo)
     RSemaphore sema;
     sema.SetHandle(info->iHandle);
     sema.Signal();
-    info->iVal = SDL_MUTEX_TIMEOUT;
+    info->iVal = false;
     return 0;
 }
 
@@ -64,7 +62,7 @@ static TInt NewSema(const TDesC &aName, TAny *aPtr1, TAny *aPtr2)
     return ((RSemaphore *)aPtr1)->CreateGlobal(aName, value);
 }
 
-static void WaitAll(SDL_sem *sem)
+static void WaitAll(SDL_Semaphore *sem)
 {
     RSemaphore sema;
     sema.SetHandle(sem->handle);
@@ -74,23 +72,22 @@ static void WaitAll(SDL_sem *sem)
     }
 }
 
-SDL_sem *
-SDL_CreateSemaphore(Uint32 initial_value)
+SDL_Semaphore *SDL_CreateSemaphore(Uint32 initial_value)
 {
     RSemaphore s;
     TInt status = CreateUnique(NewSema, &s, &initial_value);
     if (status != KErrNone) {
         SDL_SetError("Couldn't create semaphore");
     }
-    SDL_semaphore *sem = new /*(ELeave)*/ SDL_semaphore;
+    SDL_Semaphore *sem = new /*(ELeave)*/ SDL_Semaphore;
     sem->handle = s.Handle();
     sem->count = initial_value;
     return sem;
 }
 
-void SDL_DestroySemaphore(SDL_sem *sem)
+void SDL_DestroySemaphore(SDL_Semaphore *sem)
 {
-    if (sem != NULL) {
+    if (sem) {
         RSemaphore sema;
         sema.SetHandle(sem->handle);
         sema.Signal(sema.Count());
@@ -100,23 +97,23 @@ void SDL_DestroySemaphore(SDL_sem *sem)
     }
 }
 
-int SDL_SemWaitTimeoutNS(SDL_sem *sem, Sint64 timeoutNS)
+bool SDL_WaitSemaphoreTimeoutNS(SDL_Semaphore *sem, Sint64 timeoutNS)
 {
-    if (sem == NULL) {
-        return SDL_InvalidParamError("sem");
+    if (!sem) {
+        return true;
     }
 
     if (timeoutNS == 0) {
         if (sem->count > 0) {
             --sem->count;
-            return 0;
+            return true;
         }
-        return SDL_MUTEX_TIMEOUT;
+        return false;
     }
 
-    if (timeoutNS == SDL_MUTEX_MAXWAIT) {
+    if (timeoutNS == -1) {  // -1 == wait indefinitely.
         WaitAll(sem);
-        return 0;
+        return true;
     }
 
     RThread thread;
@@ -124,33 +121,32 @@ int SDL_SemWaitTimeoutNS(SDL_sem *sem, Sint64 timeoutNS)
     TInt status = CreateUnique(NewThread, &thread, info);
 
     if (status != KErrNone) {
-        return status;
+        return false;
     }
 
     thread.Resume();
     WaitAll(sem);
 
     if (thread.ExitType() == EExitPending) {
-        thread.Kill(SDL_MUTEX_TIMEOUT);
+        thread.Kill(false);
     }
 
     thread.Close();
     return info->iVal;
 }
 
-Uint32
-SDL_SemValue(SDL_sem *sem)
+Uint32 SDL_GetSemaphoreValue(SDL_Semaphore *sem)
 {
-    if (sem == NULL) {
+    if (!sem) {
         SDL_InvalidParamError("sem");
         return 0;
     }
     return sem->count;
 }
 
-int SDL_SemPost(SDL_sem *sem)
+int SDL_SignalSemaphore(SDL_Semaphore *sem)
 {
-    if (sem == NULL) {
+    if (!sem) {
         return SDL_InvalidParamError("sem");
     }
     sem->count++;
@@ -159,5 +155,3 @@ int SDL_SemPost(SDL_sem *sem)
     sema.Signal();
     return 0;
 }
-
-/* vi: set ts=4 sw=4 expandtab: */

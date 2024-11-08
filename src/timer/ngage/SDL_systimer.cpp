@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2022 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -20,7 +20,7 @@
 */
 #include "SDL_internal.h"
 
-#if defined(SDL_TIMER_NGAGE)
+#ifdef SDL_TIMER_NGAGE
 
 #include <e32std.h>
 #include <e32hal.h>
@@ -32,22 +32,20 @@ extern "C" {
 #endif
 
 
-Uint64
-SDL_GetPerformanceCounter(void)
+Uint64 SDL_GetPerformanceCounter(void)
 {
-    /* FIXME: Need to account for 32-bit wrapping */
+    // FIXME: Need to account for 32-bit wrapping
     return (Uint64)User::TickCount();
 }
 
-Uint64
-SDL_GetPerformanceFrequency(void)
+Uint64 SDL_GetPerformanceFrequency(void)
 {
     return SDL_US_PER_SECOND;
 }
 
-void SDL_DelayNS(Uint64 ns)
+void SDL_SYS_DelayNS(Uint64 ns)
 {
-    const Uint64 max_delay = 0x7fffffff * SDL_NS_PER_US;
+    const Uint64 max_delay = 0x7fffffffLL * SDL_NS_PER_US;
     if (ns > max_delay) {
         ns = max_delay;
     }
@@ -58,6 +56,4 @@ void SDL_DelayNS(Uint64 ns)
 }
 #endif
 
-#endif /* SDL_TIMER_NGAGE */
-
-/* vi: set ts=4 sw=4 expandtab: */
+#endif // SDL_TIMER_NGAGE

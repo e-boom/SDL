@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2022 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -25,23 +25,19 @@
 #include <3ds.h>
 
 
-Uint64
-SDL_GetPerformanceCounter(void)
+Uint64 SDL_GetPerformanceCounter(void)
 {
     return svcGetSystemTick();
 }
 
-Uint64
-SDL_GetPerformanceFrequency(void)
+Uint64 SDL_GetPerformanceFrequency(void)
 {
     return SYSCLOCK_ARM11;
 }
 
-void SDL_DelayNS(Uint64 ns)
+void SDL_SYS_DelayNS(Uint64 ns)
 {
     svcSleepThread(ns);
 }
 
-#endif /* SDL_TIMER_N3DS */
-
-/* vi: set sts=4 ts=4 sw=4 expandtab: */
+#endif // SDL_TIMER_N3DS

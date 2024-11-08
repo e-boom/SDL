@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2022 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -23,32 +23,22 @@
 #ifndef SDL_pulseaudio_h_
 #define SDL_pulseaudio_h_
 
-#include <pulse/simple.h>
+#include <pulse/pulseaudio.h>
 
 #include "../SDL_sysaudio.h"
 
-/* Hidden "this" pointer for the audio functions */
-#define _THIS SDL_AudioDevice *this
-
 struct SDL_PrivateAudioData
 {
-    char *device_name;
-
-    /* pulseaudio structures */
-    pa_mainloop *mainloop;
-    pa_context *context;
+    // pulseaudio structures
     pa_stream *stream;
 
-    /* Raw mixing buffer */
+    // Raw mixing buffer
     Uint8 *mixbuf;
-    int mixlen;
 
-    int bytes_requested; /* bytes of data the hardware wants _now_. */
+    int bytes_requested; // bytes of data the hardware wants _now_.
 
-    const Uint8 *capturebuf;
-    int capturelen;
+    const Uint8 *recordingbuf;
+    int recordinglen;
 };
 
-#endif /* SDL_pulseaudio_h_ */
-
-/* vi: set ts=4 sw=4 expandtab: */
+#endif // SDL_pulseaudio_h_

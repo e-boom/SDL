@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2022 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -25,11 +25,11 @@
 
 #include "../SDL_sysaudio.h"
 
-#if !defined(__IOS__)
-#define MACOSX_COREAUDIO 1
+#ifndef SDL_PLATFORM_IOS
+#define MACOSX_COREAUDIO
 #endif
 
-#if MACOSX_COREAUDIO
+#ifdef MACOSX_COREAUDIO
 #include <CoreAudio/CoreAudio.h>
 #else
 #import <AVFoundation/AVFoundation.h>
@@ -39,16 +39,13 @@
 #include <AudioToolbox/AudioToolbox.h>
 #include <AudioUnit/AudioUnit.h>
 
-/* Things named "Master" were renamed to "Main" in macOS 12.0's SDK. */
-#if MACOSX_COREAUDIO
+// Things named "Master" were renamed to "Main" in macOS 12.0's SDK.
+#ifdef MACOSX_COREAUDIO
 #include <AvailabilityMacros.h>
 #ifndef MAC_OS_VERSION_12_0
 #define kAudioObjectPropertyElementMain kAudioObjectPropertyElementMaster
 #endif
 #endif
-
-/* Hidden "this" pointer for the audio functions */
-#define _THIS SDL_AudioDevice *this
 
 struct SDL_PrivateAudioData
 {
@@ -56,21 +53,16 @@ struct SDL_PrivateAudioData
     AudioQueueRef audioQueue;
     int numAudioBuffers;
     AudioQueueBufferRef *audioBuffer;
-    void *buffer;
-    UInt32 bufferOffset;
-    UInt32 bufferSize;
+    AudioQueueBufferRef current_buffer;
     AudioStreamBasicDescription strdesc;
-    SDL_sem *ready_semaphore;
+    SDL_Semaphore *ready_semaphore;
     char *thread_error;
-#if MACOSX_COREAUDIO
+#ifdef MACOSX_COREAUDIO
     AudioDeviceID deviceID;
-    SDL_atomic_t device_change_flag;
 #else
-    SDL_bool interrupted;
+    bool interrupted;
     CFTypeRef interruption_listener;
 #endif
 };
 
-#endif /* SDL_coreaudio_h_ */
-
-/* vi: set ts=4 sw=4 expandtab: */
+#endif // SDL_coreaudio_h_

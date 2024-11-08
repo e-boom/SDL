@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2022 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -29,31 +29,27 @@
 
 /*****************************************************************************************************/
 
-#include <stdint.h>
-
-typedef enum
-{
-    false,
-    true
-} bool;
-
-typedef uint32_t uint32;
-typedef uint64_t uint64;
-
 #include "steam/controller_constants.h"
 #include "steam/controller_structs.h"
+
+enum
+{
+    SDL_GAMEPAD_BUTTON_STEAM_RIGHT_PADDLE = 11,
+    SDL_GAMEPAD_BUTTON_STEAM_LEFT_PADDLE,
+    SDL_GAMEPAD_NUM_STEAM_BUTTONS,
+};
 
 typedef struct SteamControllerStateInternal_t
 {
     // Controller Type for this Controller State
-    uint32 eControllerType;
+    Uint32 eControllerType;
 
     // If packet num matches that on your prior call, then the controller state hasn't been changed since
     // your last call and there is no need to process it
-    uint32 unPacketNum;
+    Uint32 unPacketNum;
 
     // bit flags for each of the buttons
-    uint64 ulButtons;
+    Uint64 ulButtons;
 
     // Left pad coordinates
     short sLeftPadX;
@@ -107,22 +103,22 @@ typedef struct SteamControllerStateInternal_t
     short sPrevLeftStick[2];
 } SteamControllerStateInternal_t;
 
-/* Defines for ulButtons in SteamControllerStateInternal_t */
+// Defines for ulButtons in SteamControllerStateInternal_t
 #define STEAM_RIGHT_TRIGGER_MASK           0x00000001
 #define STEAM_LEFT_TRIGGER_MASK            0x00000002
 #define STEAM_RIGHT_BUMPER_MASK            0x00000004
 #define STEAM_LEFT_BUMPER_MASK             0x00000008
-#define STEAM_BUTTON_0_MASK                0x00000010 /* Y */
-#define STEAM_BUTTON_1_MASK                0x00000020 /* B */
-#define STEAM_BUTTON_2_MASK                0x00000040 /* X */
-#define STEAM_BUTTON_3_MASK                0x00000080 /* A */
-#define STEAM_TOUCH_0_MASK                 0x00000100 /* DPAD UP */
-#define STEAM_TOUCH_1_MASK                 0x00000200 /* DPAD RIGHT */
-#define STEAM_TOUCH_2_MASK                 0x00000400 /* DPAD LEFT */
-#define STEAM_TOUCH_3_MASK                 0x00000800 /* DPAD DOWN */
-#define STEAM_BUTTON_MENU_MASK             0x00001000 /* SELECT */
-#define STEAM_BUTTON_STEAM_MASK            0x00002000 /* GUIDE */
-#define STEAM_BUTTON_ESCAPE_MASK           0x00004000 /* START */
+#define STEAM_BUTTON_NORTH_MASK            0x00000010 // Y
+#define STEAM_BUTTON_EAST_MASK             0x00000020 // B
+#define STEAM_BUTTON_WEST_MASK             0x00000040 // X
+#define STEAM_BUTTON_SOUTH_MASK            0x00000080 // A
+#define STEAM_DPAD_UP_MASK                 0x00000100 // DPAD UP
+#define STEAM_DPAD_RIGHT_MASK              0x00000200 // DPAD RIGHT
+#define STEAM_DPAD_LEFT_MASK               0x00000400 // DPAD LEFT
+#define STEAM_DPAD_DOWN_MASK               0x00000800 // DPAD DOWN
+#define STEAM_BUTTON_MENU_MASK             0x00001000 // SELECT
+#define STEAM_BUTTON_STEAM_MASK            0x00002000 // GUIDE
+#define STEAM_BUTTON_ESCAPE_MASK           0x00004000 // START
 #define STEAM_BUTTON_BACK_LEFT_MASK        0x00008000
 #define STEAM_BUTTON_BACK_RIGHT_MASK       0x00010000
 #define STEAM_BUTTON_LEFTPAD_CLICKED_MASK  0x00020000
@@ -217,7 +213,7 @@ static void ResetSteamControllerPacketAssembler(SteamControllerPacketAssembler *
 
 static void InitializeSteamControllerPacketAssembler(SteamControllerPacketAssembler *pAssembler)
 {
-    /* We only support BLE devices right now */
+    // We only support BLE devices right now
     pAssembler->bIsBle = true;
     ResetSteamControllerPacketAssembler(pAssembler);
 }
@@ -248,7 +244,7 @@ static int WriteSegmentToSteamControllerPacketAssembler(SteamControllerPacketAss
 
         DPRINTF("GOT PACKET HEADER = 0x%x\n", uSegmentHeader);
 
-        if ((uSegmentHeader & REPORT_SEGMENT_DATA_FLAG) == 0) {
+        if (!(uSegmentHeader & REPORT_SEGMENT_DATA_FLAG)) {
             // We get empty segments, just ignore them
             return 0;
         }
@@ -347,7 +343,7 @@ static int GetFeatureReport(SDL_hid_device *dev, unsigned char uBuffer[65])
         // On Windows and macOS, BLE devices get 2 copies of the feature report ID, one that is removed by ReadFeatureReport,
         // and one that's included in the buffer we receive. We pad the bytes to read and skip over the report ID
         // if necessary.
-#if defined(__WIN32__) || defined(__MACOS__)
+#if defined(SDL_PLATFORM_WIN32) || defined(SDL_PLATFORM_MACOS)
         ++ucBytesToRead;
         ++ucDataStartOffset;
 #endif
@@ -513,12 +509,12 @@ static bool ResetSteamController(SDL_hid_device *dev, bool bSuppressErrorSpew, u
     ADD_SETTING(SETTING_RIGHT_TRACKPAD_MODE, TRACKPAD_ABSOLUTE_MOUSE);
     ADD_SETTING(SETTING_SMOOTH_ABSOLUTE_MOUSE, 1);
     ADD_SETTING(SETTING_MOMENTUM_MAXIMUM_VELOCITY, 20000); // [0-20000] default 8000
-    ADD_SETTING(SETTING_MOMENTUM_DECAY_AMMOUNT, 50);       // [0-50] default 5
+    ADD_SETTING(SETTING_MOMENTUM_DECAY_AMOUNT, 50);       // [0-50] default 5
 #else
     ADD_SETTING(SETTING_RIGHT_TRACKPAD_MODE, TRACKPAD_NONE);
     ADD_SETTING(SETTING_SMOOTH_ABSOLUTE_MOUSE, 0);
 #endif
-    buf[2] = nSettings * 3;
+    buf[2] = (unsigned char)(nSettings * 3);
 
     res = SetFeatureReport(dev, buf, 3 + nSettings * 3);
     if (res < 0) {
@@ -618,7 +614,7 @@ static void CloseSteamController(SDL_hid_device *dev)
     SDL_memset(buf, 0, 65);
     buf[1] = ID_SET_SETTINGS_VALUES;
     ADD_SETTING(SETTING_RIGHT_TRACKPAD_MODE, TRACKPAD_ABSOLUTE_MOUSE);
-    buf[2] = nSettings * 3;
+    buf[2] = (unsigned char)(nSettings * 3);
     SetFeatureReport(dev, buf, 3 + nSettings * 3);
 }
 
@@ -642,14 +638,14 @@ static float RemapValClamped(float val, float A, float B, float C, float D)
 //---------------------------------------------------------------------------
 static void RotatePad(int *pX, int *pY, float flAngleInRad)
 {
-    short int origX = *pX, origY = *pY;
+    int origX = *pX, origY = *pY;
 
     *pX = (int)(SDL_cosf(flAngleInRad) * origX - SDL_sinf(flAngleInRad) * origY);
     *pY = (int)(SDL_sinf(flAngleInRad) * origX + SDL_cosf(flAngleInRad) * origY);
 }
 static void RotatePadShort(short *pX, short *pY, float flAngleInRad)
 {
-    short int origX = *pX, origY = *pY;
+    int origX = *pX, origY = *pY;
 
     *pX = (short)(SDL_cosf(flAngleInRad) * origX - SDL_sinf(flAngleInRad) * origY);
     *pY = (short)(SDL_sinf(flAngleInRad) * origX + SDL_cosf(flAngleInRad) * origY);
@@ -679,7 +675,7 @@ static void FormatStatePacketUntilGyro(SteamControllerStateInternal_t *pState, V
     SDL_memcpy(&pState->ulButtons, &pStatePacket->ButtonTriggerData.ulButtons, 8);
     pState->ulButtons &= ~0xFFFF000000LL;
 
-    // The firmware uses this bit to tell us what kind of data is packed into the left two axises
+    // The firmware uses this bit to tell us what kind of data is packed into the left two axes
     if (pStatePacket->ButtonTriggerData.ulButtons & STEAM_LEFTPAD_FINGERDOWN_MASK) {
         // Finger-down bit not set; "left pad" is actually trackpad
         pState->sLeftPadX = pState->sPrevLeftPad[0] = pStatePacket->sLeftPadX;
@@ -697,7 +693,7 @@ static void FormatStatePacketUntilGyro(SteamControllerStateInternal_t *pState, V
     } else {
         // Finger-down bit not set; "left pad" is actually joystick
 
-        // XXX there's a firmware bug where sometimes padX is 0 and padY is a large number (acutally the battery voltage)
+        // XXX there's a firmware bug where sometimes padX is 0 and padY is a large number (actually the battery voltage)
         // If that happens skip this packet and report last frames stick
         /*
                 if ( m_eControllerType == k_eControllerType_SteamControllerV2 && pStatePacket->sLeftPadY > 900 ) {
@@ -755,8 +751,8 @@ static void FormatStatePacketUntilGyro(SteamControllerStateInternal_t *pState, V
         nPadOffset = 0;
     }
 
-    pState->sLeftPadX = clamp(nLeftPadX + nPadOffset, SDL_MIN_SINT16, SDL_MAX_SINT16);
-    pState->sLeftPadY = clamp(nLeftPadY + nPadOffset, SDL_MIN_SINT16, SDL_MAX_SINT16);
+    pState->sLeftPadX = (short)clamp(nLeftPadX + nPadOffset, SDL_MIN_SINT16, SDL_MAX_SINT16);
+    pState->sLeftPadY = (short)clamp(nLeftPadY + nPadOffset, SDL_MIN_SINT16, SDL_MAX_SINT16);
 
     nPadOffset = 0;
     if (pState->ulButtons & STEAM_RIGHTPAD_FINGERDOWN_MASK) {
@@ -765,8 +761,8 @@ static void FormatStatePacketUntilGyro(SteamControllerStateInternal_t *pState, V
         nPadOffset = 0;
     }
 
-    pState->sRightPadX = clamp(nRightPadX + nPadOffset, SDL_MIN_SINT16, SDL_MAX_SINT16);
-    pState->sRightPadY = clamp(nRightPadY + nPadOffset, SDL_MIN_SINT16, SDL_MAX_SINT16);
+    pState->sRightPadX = (short)clamp(nRightPadX + nPadOffset, SDL_MIN_SINT16, SDL_MAX_SINT16);
+    pState->sRightPadY = (short)clamp(nRightPadY + nPadOffset, SDL_MIN_SINT16, SDL_MAX_SINT16);
 
     pState->sTriggerL = (unsigned short)RemapValClamped((float)((pStatePacket->ButtonTriggerData.Triggers.nLeft << 7) | pStatePacket->ButtonTriggerData.Triggers.nLeft), 0, STEAMCONTROLLER_TRIGGER_MAX_ANALOG, 0, SDL_MAX_SINT16);
     pState->sTriggerR = (unsigned short)RemapValClamped((float)((pStatePacket->ButtonTriggerData.Triggers.nRight << 7) | pStatePacket->ButtonTriggerData.Triggers.nRight), 0, STEAMCONTROLLER_TRIGGER_MAX_ANALOG, 0, SDL_MAX_SINT16);
@@ -817,8 +813,8 @@ static bool UpdateBLESteamControllerState(const uint8_t *pData, int nDataSize, S
         }
 
         RotatePadShort(&pState->sLeftPadX, &pState->sLeftPadY, -flRotationAngle);
-        pState->sLeftPadX = clamp(pState->sLeftPadX + nPadOffset, SDL_MIN_SINT16, SDL_MAX_SINT16);
-        pState->sLeftPadY = clamp(pState->sLeftPadY + nPadOffset, SDL_MIN_SINT16, SDL_MAX_SINT16);
+        pState->sLeftPadX = (short)clamp(pState->sLeftPadX + nPadOffset, SDL_MIN_SINT16, SDL_MAX_SINT16);
+        pState->sLeftPadY = (short)clamp(pState->sLeftPadY + nPadOffset, SDL_MIN_SINT16, SDL_MAX_SINT16);
         pData += nLength;
     }
     if (ucOptionDataMask & k_EBLERightTrackpadChunk) {
@@ -834,8 +830,8 @@ static bool UpdateBLESteamControllerState(const uint8_t *pData, int nDataSize, S
         }
 
         RotatePadShort(&pState->sRightPadX, &pState->sRightPadY, flRotationAngle);
-        pState->sRightPadX = clamp(pState->sRightPadX + nPadOffset, SDL_MIN_SINT16, SDL_MAX_SINT16);
-        pState->sRightPadY = clamp(pState->sRightPadY + nPadOffset, SDL_MIN_SINT16, SDL_MAX_SINT16);
+        pState->sRightPadX = (short)clamp(pState->sRightPadX + nPadOffset, SDL_MIN_SINT16, SDL_MAX_SINT16);
+        pState->sRightPadY = (short)clamp(pState->sRightPadY + nPadOffset, SDL_MIN_SINT16, SDL_MAX_SINT16);
         pData += nLength;
     }
     if (ucOptionDataMask & k_EBLEIMUAccelChunk) {
@@ -941,7 +937,7 @@ static bool UpdateSteamControllerState(const uint8_t *pData, int nDataSize, Stea
 
 typedef struct
 {
-    SDL_bool report_sensors;
+    bool report_sensors;
     uint32_t update_rate_in_us;
     Uint64 sensor_timestamp;
 
@@ -957,37 +953,36 @@ static void HIDAPI_DriverSteam_RegisterHints(SDL_HintCallback callback, void *us
 
 static void HIDAPI_DriverSteam_UnregisterHints(SDL_HintCallback callback, void *userdata)
 {
-    SDL_DelHintCallback(SDL_HINT_JOYSTICK_HIDAPI_STEAM, callback, userdata);
+    SDL_RemoveHintCallback(SDL_HINT_JOYSTICK_HIDAPI_STEAM, callback, userdata);
 }
 
-static SDL_bool HIDAPI_DriverSteam_IsEnabled(void)
+static bool HIDAPI_DriverSteam_IsEnabled(void)
 {
-    return SDL_GetHintBoolean(SDL_HINT_JOYSTICK_HIDAPI_STEAM, SDL_FALSE);
+    return SDL_GetHintBoolean(SDL_HINT_JOYSTICK_HIDAPI_STEAM, false);
 }
 
-static SDL_bool HIDAPI_DriverSteam_IsSupportedDevice(SDL_HIDAPI_Device *device, const char *name, SDL_GameControllerType type, Uint16 vendor_id, Uint16 product_id, Uint16 version, int interface_number, int interface_class, int interface_subclass, int interface_protocol)
+static bool HIDAPI_DriverSteam_IsSupportedDevice(SDL_HIDAPI_Device *device, const char *name, SDL_GamepadType type, Uint16 vendor_id, Uint16 product_id, Uint16 version, int interface_number, int interface_class, int interface_subclass, int interface_protocol)
 {
     return SDL_IsJoystickSteamController(vendor_id, product_id);
 }
 
-static SDL_bool HIDAPI_DriverSteam_InitDevice(SDL_HIDAPI_Device *device)
+static bool HIDAPI_DriverSteam_InitDevice(SDL_HIDAPI_Device *device)
 {
     SDL_DriverSteam_Context *ctx;
 
     ctx = (SDL_DriverSteam_Context *)SDL_calloc(1, sizeof(*ctx));
-    if (ctx == NULL) {
-        SDL_OutOfMemory();
-        return SDL_FALSE;
+    if (!ctx) {
+        return false;
     }
     device->context = ctx;
 
-#if defined(__WIN32__)
+#ifdef SDL_PLATFORM_WIN32
     if (device->serial) {
-        /* We get a garbage serial number on Windows */
+        // We get a garbage serial number on Windows
         SDL_free(device->serial);
         device->serial = NULL;
     }
-#endif /* __WIN32__ */
+#endif // SDL_PLATFORM_WIN32
 
     HIDAPI_SetDeviceName(device, "Steam Controller");
 
@@ -1003,21 +998,21 @@ static void HIDAPI_DriverSteam_SetDevicePlayerIndex(SDL_HIDAPI_Device *device, S
 {
 }
 
-static SDL_bool HIDAPI_DriverSteam_OpenJoystick(SDL_HIDAPI_Device *device, SDL_Joystick *joystick)
+static bool HIDAPI_DriverSteam_OpenJoystick(SDL_HIDAPI_Device *device, SDL_Joystick *joystick)
 {
     SDL_DriverSteam_Context *ctx = (SDL_DriverSteam_Context *)device->context;
     float update_rate_in_hz = 0.0f;
 
     SDL_AssertJoysticksLocked();
 
-    ctx->report_sensors = SDL_FALSE;
+    ctx->report_sensors = false;
     SDL_zero(ctx->m_assembler);
     SDL_zero(ctx->m_state);
     SDL_zero(ctx->m_last_state);
 
     if (!ResetSteamController(device->dev, false, &ctx->update_rate_in_us)) {
         SDL_SetError("Couldn't reset controller");
-        return SDL_FALSE;
+        return false;
     }
     if (ctx->update_rate_in_us > 0) {
         update_rate_in_hz = 1000000.0f / ctx->update_rate_in_us;
@@ -1025,45 +1020,46 @@ static SDL_bool HIDAPI_DriverSteam_OpenJoystick(SDL_HIDAPI_Device *device, SDL_J
 
     InitializeSteamControllerPacketAssembler(&ctx->m_assembler);
 
-    /* Initialize the joystick capabilities */
-    joystick->nbuttons = 17;
-    joystick->naxes = SDL_CONTROLLER_AXIS_MAX;
+    // Initialize the joystick capabilities
+    joystick->nbuttons = SDL_GAMEPAD_NUM_STEAM_BUTTONS;
+    joystick->naxes = SDL_GAMEPAD_AXIS_COUNT;
+    joystick->nhats = 1;
 
     SDL_PrivateJoystickAddSensor(joystick, SDL_SENSOR_GYRO, update_rate_in_hz);
     SDL_PrivateJoystickAddSensor(joystick, SDL_SENSOR_ACCEL, update_rate_in_hz);
 
-    return SDL_TRUE;
+    return true;
 }
 
-static int HIDAPI_DriverSteam_RumbleJoystick(SDL_HIDAPI_Device *device, SDL_Joystick *joystick, Uint16 low_frequency_rumble, Uint16 high_frequency_rumble)
+static bool HIDAPI_DriverSteam_RumbleJoystick(SDL_HIDAPI_Device *device, SDL_Joystick *joystick, Uint16 low_frequency_rumble, Uint16 high_frequency_rumble)
 {
-    /* You should use the full Steam Input API for rumble support */
+    // You should use the full Steam Input API for rumble support
     return SDL_Unsupported();
 }
 
-static int HIDAPI_DriverSteam_RumbleJoystickTriggers(SDL_HIDAPI_Device *device, SDL_Joystick *joystick, Uint16 left_rumble, Uint16 right_rumble)
+static bool HIDAPI_DriverSteam_RumbleJoystickTriggers(SDL_HIDAPI_Device *device, SDL_Joystick *joystick, Uint16 left_rumble, Uint16 right_rumble)
 {
     return SDL_Unsupported();
 }
 
 static Uint32 HIDAPI_DriverSteam_GetJoystickCapabilities(SDL_HIDAPI_Device *device, SDL_Joystick *joystick)
 {
-    /* You should use the full Steam Input API for extended capabilities */
+    // You should use the full Steam Input API for extended capabilities
     return 0;
 }
 
-static int HIDAPI_DriverSteam_SetJoystickLED(SDL_HIDAPI_Device *device, SDL_Joystick *joystick, Uint8 red, Uint8 green, Uint8 blue)
+static bool HIDAPI_DriverSteam_SetJoystickLED(SDL_HIDAPI_Device *device, SDL_Joystick *joystick, Uint8 red, Uint8 green, Uint8 blue)
 {
-    /* You should use the full Steam Input API for LED support */
+    // You should use the full Steam Input API for LED support
     return SDL_Unsupported();
 }
 
-static int HIDAPI_DriverSteam_SendJoystickEffect(SDL_HIDAPI_Device *device, SDL_Joystick *joystick, const void *data, int size)
+static bool HIDAPI_DriverSteam_SendJoystickEffect(SDL_HIDAPI_Device *device, SDL_Joystick *joystick, const void *data, int size)
 {
     return SDL_Unsupported();
 }
 
-static int HIDAPI_DriverSteam_SetSensorsEnabled(SDL_HIDAPI_Device *device, SDL_Joystick *joystick, SDL_bool enabled)
+static bool HIDAPI_DriverSteam_SetSensorsEnabled(SDL_HIDAPI_Device *device, SDL_Joystick *joystick, bool enabled)
 {
     SDL_DriverSteam_Context *ctx = (SDL_DriverSteam_Context *)device->context;
     unsigned char buf[65];
@@ -1072,29 +1068,29 @@ static int HIDAPI_DriverSteam_SetSensorsEnabled(SDL_HIDAPI_Device *device, SDL_J
     SDL_memset(buf, 0, 65);
     buf[1] = ID_SET_SETTINGS_VALUES;
     if (enabled) {
-        ADD_SETTING(SETTING_GYRO_MODE, 0x18 /* SETTING_GYRO_SEND_RAW_ACCEL | SETTING_GYRO_MODE_SEND_RAW_GYRO */);
+        ADD_SETTING(SETTING_IMU_MODE, SETTING_GYRO_MODE_SEND_RAW_ACCEL | SETTING_GYRO_MODE_SEND_RAW_GYRO);
     } else {
-        ADD_SETTING(SETTING_GYRO_MODE, 0x00 /* SETTING_GYRO_MODE_OFF */);
+        ADD_SETTING(SETTING_IMU_MODE, SETTING_GYRO_MODE_OFF);
     }
-    buf[2] = nSettings * 3;
+    buf[2] = (unsigned char)(nSettings * 3);
     if (SetFeatureReport(device->dev, buf, 3 + nSettings * 3) < 0) {
         return SDL_SetError("Couldn't write feature report");
     }
 
     ctx->report_sensors = enabled;
 
-    return 0;
+    return true;
 }
 
-static SDL_bool HIDAPI_DriverSteam_UpdateDevice(SDL_HIDAPI_Device *device)
+static bool HIDAPI_DriverSteam_UpdateDevice(SDL_HIDAPI_Device *device)
 {
     SDL_DriverSteam_Context *ctx = (SDL_DriverSteam_Context *)device->context;
     SDL_Joystick *joystick = NULL;
 
     if (device->num_joysticks > 0) {
-        joystick = SDL_JoystickFromInstanceID(device->joysticks[0]);
+        joystick = SDL_GetJoystickFromID(device->joysticks[0]);
     } else {
-        return SDL_FALSE;
+        return false;
     }
 
     for (;;) {
@@ -1107,7 +1103,7 @@ static SDL_bool HIDAPI_DriverSteam_UpdateDevice(SDL_HIDAPI_Device *device)
             break;
         }
 
-        if (joystick == NULL) {
+        if (!joystick) {
             continue;
         }
 
@@ -1122,65 +1118,67 @@ static SDL_bool HIDAPI_DriverSteam_UpdateDevice(SDL_HIDAPI_Device *device)
             Uint64 timestamp = SDL_GetTicksNS();
 
             if (ctx->m_state.ulButtons != ctx->m_last_state.ulButtons) {
-                SDL_PrivateJoystickButton(timestamp, joystick, SDL_CONTROLLER_BUTTON_A,
-                                          (ctx->m_state.ulButtons & STEAM_BUTTON_3_MASK) ? SDL_PRESSED : SDL_RELEASED);
+                Uint8 hat = 0;
 
-                SDL_PrivateJoystickButton(timestamp, joystick, SDL_CONTROLLER_BUTTON_B,
-                                          (ctx->m_state.ulButtons & STEAM_BUTTON_1_MASK) ? SDL_PRESSED : SDL_RELEASED);
+                SDL_SendJoystickButton(timestamp, joystick, SDL_GAMEPAD_BUTTON_SOUTH,
+                                          ((ctx->m_state.ulButtons & STEAM_BUTTON_SOUTH_MASK) != 0));
 
-                SDL_PrivateJoystickButton(timestamp, joystick, SDL_CONTROLLER_BUTTON_X,
-                                          (ctx->m_state.ulButtons & STEAM_BUTTON_2_MASK) ? SDL_PRESSED : SDL_RELEASED);
+                SDL_SendJoystickButton(timestamp, joystick, SDL_GAMEPAD_BUTTON_EAST,
+                                          ((ctx->m_state.ulButtons & STEAM_BUTTON_EAST_MASK) != 0));
 
-                SDL_PrivateJoystickButton(timestamp, joystick, SDL_CONTROLLER_BUTTON_Y,
-                                          (ctx->m_state.ulButtons & STEAM_BUTTON_0_MASK) ? SDL_PRESSED : SDL_RELEASED);
+                SDL_SendJoystickButton(timestamp, joystick, SDL_GAMEPAD_BUTTON_WEST,
+                                          ((ctx->m_state.ulButtons & STEAM_BUTTON_WEST_MASK) != 0));
 
-                SDL_PrivateJoystickButton(timestamp, joystick, SDL_CONTROLLER_BUTTON_LEFTSHOULDER,
-                                          (ctx->m_state.ulButtons & STEAM_LEFT_BUMPER_MASK) ? SDL_PRESSED : SDL_RELEASED);
+                SDL_SendJoystickButton(timestamp, joystick, SDL_GAMEPAD_BUTTON_NORTH,
+                                          ((ctx->m_state.ulButtons & STEAM_BUTTON_NORTH_MASK) != 0));
 
-                SDL_PrivateJoystickButton(timestamp, joystick, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,
-                                          (ctx->m_state.ulButtons & STEAM_RIGHT_BUMPER_MASK) ? SDL_PRESSED : SDL_RELEASED);
+                SDL_SendJoystickButton(timestamp, joystick, SDL_GAMEPAD_BUTTON_LEFT_SHOULDER,
+                                          ((ctx->m_state.ulButtons & STEAM_LEFT_BUMPER_MASK) != 0));
 
-                SDL_PrivateJoystickButton(timestamp, joystick, SDL_CONTROLLER_BUTTON_BACK,
-                                          (ctx->m_state.ulButtons & STEAM_BUTTON_MENU_MASK) ? SDL_PRESSED : SDL_RELEASED);
+                SDL_SendJoystickButton(timestamp, joystick, SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER,
+                                          ((ctx->m_state.ulButtons & STEAM_RIGHT_BUMPER_MASK) != 0));
 
-                SDL_PrivateJoystickButton(timestamp, joystick, SDL_CONTROLLER_BUTTON_START,
-                                          (ctx->m_state.ulButtons & STEAM_BUTTON_ESCAPE_MASK) ? SDL_PRESSED : SDL_RELEASED);
+                SDL_SendJoystickButton(timestamp, joystick, SDL_GAMEPAD_BUTTON_BACK,
+                                          ((ctx->m_state.ulButtons & STEAM_BUTTON_MENU_MASK) != 0));
 
-                SDL_PrivateJoystickButton(timestamp, joystick, SDL_CONTROLLER_BUTTON_GUIDE,
-                                          (ctx->m_state.ulButtons & STEAM_BUTTON_STEAM_MASK) ? SDL_PRESSED : SDL_RELEASED);
+                SDL_SendJoystickButton(timestamp, joystick, SDL_GAMEPAD_BUTTON_START,
+                                          ((ctx->m_state.ulButtons & STEAM_BUTTON_ESCAPE_MASK) != 0));
 
-                SDL_PrivateJoystickButton(timestamp, joystick, SDL_CONTROLLER_BUTTON_LEFTSTICK,
-                                          (ctx->m_state.ulButtons & STEAM_JOYSTICK_BUTTON_MASK) ? SDL_PRESSED : SDL_RELEASED);
-                SDL_PrivateJoystickButton(timestamp, joystick, SDL_CONTROLLER_BUTTON_MISC1 + 0,
-                                          (ctx->m_state.ulButtons & STEAM_BUTTON_BACK_LEFT_MASK) ? SDL_PRESSED : SDL_RELEASED);
-                SDL_PrivateJoystickButton(timestamp, joystick, SDL_CONTROLLER_BUTTON_MISC1 + 1,
-                                          (ctx->m_state.ulButtons & STEAM_BUTTON_BACK_RIGHT_MASK) ? SDL_PRESSED : SDL_RELEASED);
+                SDL_SendJoystickButton(timestamp, joystick, SDL_GAMEPAD_BUTTON_GUIDE,
+                                          ((ctx->m_state.ulButtons & STEAM_BUTTON_STEAM_MASK) != 0));
+
+                SDL_SendJoystickButton(timestamp, joystick, SDL_GAMEPAD_BUTTON_LEFT_STICK,
+                                          ((ctx->m_state.ulButtons & STEAM_JOYSTICK_BUTTON_MASK) != 0));
+                SDL_SendJoystickButton(timestamp, joystick, SDL_GAMEPAD_BUTTON_STEAM_LEFT_PADDLE,
+                                          ((ctx->m_state.ulButtons & STEAM_BUTTON_BACK_LEFT_MASK) != 0));
+                SDL_SendJoystickButton(timestamp, joystick, SDL_GAMEPAD_BUTTON_STEAM_RIGHT_PADDLE,
+                                          ((ctx->m_state.ulButtons & STEAM_BUTTON_BACK_RIGHT_MASK) != 0));
+
+                SDL_SendJoystickButton(timestamp, joystick, SDL_GAMEPAD_BUTTON_RIGHT_STICK,
+                                          ((ctx->m_state.ulButtons & STEAM_BUTTON_RIGHTPAD_CLICKED_MASK) != 0));
+
+                if (ctx->m_state.ulButtons & STEAM_DPAD_UP_MASK) {
+                    hat |= SDL_HAT_UP;
+                }
+                if (ctx->m_state.ulButtons & STEAM_DPAD_DOWN_MASK) {
+                    hat |= SDL_HAT_DOWN;
+                }
+                if (ctx->m_state.ulButtons & STEAM_DPAD_LEFT_MASK) {
+                    hat |= SDL_HAT_LEFT;
+                }
+                if (ctx->m_state.ulButtons & STEAM_DPAD_RIGHT_MASK) {
+                    hat |= SDL_HAT_RIGHT;
+                }
+                SDL_SendJoystickHat(timestamp, joystick, 0, hat);
             }
-            {
-                /* Minimum distance from center of pad to register a direction */
-                const int kPadDeadZone = 10000;
 
-                /* Pad coordinates are like math grid coordinates: negative is bottom left */
-                SDL_PrivateJoystickButton(timestamp, joystick, SDL_CONTROLLER_BUTTON_DPAD_UP,
-                                          (ctx->m_state.sLeftPadY > kPadDeadZone) ? SDL_PRESSED : SDL_RELEASED);
+            SDL_SendJoystickAxis(timestamp, joystick, SDL_GAMEPAD_AXIS_LEFT_TRIGGER, (int)ctx->m_state.sTriggerL * 2 - 32768);
+            SDL_SendJoystickAxis(timestamp, joystick, SDL_GAMEPAD_AXIS_RIGHT_TRIGGER, (int)ctx->m_state.sTriggerR * 2 - 32768);
 
-                SDL_PrivateJoystickButton(timestamp, joystick, SDL_CONTROLLER_BUTTON_DPAD_DOWN,
-                                          (ctx->m_state.sLeftPadY < -kPadDeadZone) ? SDL_PRESSED : SDL_RELEASED);
-
-                SDL_PrivateJoystickButton(timestamp, joystick, SDL_CONTROLLER_BUTTON_DPAD_LEFT,
-                                          (ctx->m_state.sLeftPadX < -kPadDeadZone) ? SDL_PRESSED : SDL_RELEASED);
-
-                SDL_PrivateJoystickButton(timestamp, joystick, SDL_CONTROLLER_BUTTON_DPAD_RIGHT,
-                                          (ctx->m_state.sLeftPadX > kPadDeadZone) ? SDL_PRESSED : SDL_RELEASED);
-            }
-
-            SDL_PrivateJoystickAxis(timestamp, joystick, SDL_CONTROLLER_AXIS_TRIGGERLEFT, (int)ctx->m_state.sTriggerL * 2 - 32768);
-            SDL_PrivateJoystickAxis(timestamp, joystick, SDL_CONTROLLER_AXIS_TRIGGERRIGHT, (int)ctx->m_state.sTriggerR * 2 - 32768);
-
-            SDL_PrivateJoystickAxis(timestamp, joystick, SDL_CONTROLLER_AXIS_LEFTX, ctx->m_state.sLeftStickX);
-            SDL_PrivateJoystickAxis(timestamp, joystick, SDL_CONTROLLER_AXIS_LEFTY, ~ctx->m_state.sLeftStickY);
-            SDL_PrivateJoystickAxis(timestamp, joystick, SDL_CONTROLLER_AXIS_RIGHTX, ctx->m_state.sRightPadX);
-            SDL_PrivateJoystickAxis(timestamp, joystick, SDL_CONTROLLER_AXIS_RIGHTY, ~ctx->m_state.sRightPadY);
+            SDL_SendJoystickAxis(timestamp, joystick, SDL_GAMEPAD_AXIS_LEFTX, ctx->m_state.sLeftStickX);
+            SDL_SendJoystickAxis(timestamp, joystick, SDL_GAMEPAD_AXIS_LEFTY, ~ctx->m_state.sLeftStickY);
+            SDL_SendJoystickAxis(timestamp, joystick, SDL_GAMEPAD_AXIS_RIGHTX, ctx->m_state.sRightPadX);
+            SDL_SendJoystickAxis(timestamp, joystick, SDL_GAMEPAD_AXIS_RIGHTY, ~ctx->m_state.sRightPadY);
 
             if (ctx->report_sensors) {
                 float values[3];
@@ -1190,24 +1188,24 @@ static SDL_bool HIDAPI_DriverSteam_UpdateDevice(SDL_HIDAPI_Device *device)
                 values[0] = (ctx->m_state.sGyroX / 32768.0f) * (2000.0f * (SDL_PI_F / 180.0f));
                 values[1] = (ctx->m_state.sGyroZ / 32768.0f) * (2000.0f * (SDL_PI_F / 180.0f));
                 values[2] = (ctx->m_state.sGyroY / 32768.0f) * (2000.0f * (SDL_PI_F / 180.0f));
-                SDL_PrivateJoystickSensor(timestamp, joystick, SDL_SENSOR_GYRO, ctx->sensor_timestamp, values, 3);
+                SDL_SendJoystickSensor(timestamp, joystick, SDL_SENSOR_GYRO, ctx->sensor_timestamp, values, 3);
 
                 values[0] = (ctx->m_state.sAccelX / 32768.0f) * 2.0f * SDL_STANDARD_GRAVITY;
                 values[1] = (ctx->m_state.sAccelZ / 32768.0f) * 2.0f * SDL_STANDARD_GRAVITY;
                 values[2] = (-ctx->m_state.sAccelY / 32768.0f) * 2.0f * SDL_STANDARD_GRAVITY;
-                SDL_PrivateJoystickSensor(timestamp, joystick, SDL_SENSOR_ACCEL, ctx->sensor_timestamp, values, 3);
+                SDL_SendJoystickSensor(timestamp, joystick, SDL_SENSOR_ACCEL, ctx->sensor_timestamp, values, 3);
             }
 
             ctx->m_last_state = ctx->m_state;
         }
 
         if (r <= 0) {
-            /* Failed to read from controller */
+            // Failed to read from controller
             HIDAPI_JoystickDisconnected(device, device->joysticks[0]);
-            return SDL_FALSE;
+            return false;
         }
     }
-    return SDL_TRUE;
+    return true;
 }
 
 static void HIDAPI_DriverSteam_CloseJoystick(SDL_HIDAPI_Device *device, SDL_Joystick *joystick)
@@ -1221,7 +1219,7 @@ static void HIDAPI_DriverSteam_FreeDevice(SDL_HIDAPI_Device *device)
 
 SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverSteam = {
     SDL_HINT_JOYSTICK_HIDAPI_STEAM,
-    SDL_TRUE,
+    true,
     HIDAPI_DriverSteam_RegisterHints,
     HIDAPI_DriverSteam_UnregisterHints,
     HIDAPI_DriverSteam_IsEnabled,
@@ -1241,8 +1239,6 @@ SDL_HIDAPI_DeviceDriver SDL_HIDAPI_DriverSteam = {
     HIDAPI_DriverSteam_FreeDevice,
 };
 
-#endif /* SDL_JOYSTICK_HIDAPI_STEAM */
+#endif // SDL_JOYSTICK_HIDAPI_STEAM
 
-#endif /* SDL_JOYSTICK_HIDAPI */
-
-/* vi: set ts=4 sw=4 expandtab: */
+#endif // SDL_JOYSTICK_HIDAPI

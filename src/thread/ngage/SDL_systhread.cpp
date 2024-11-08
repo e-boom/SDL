@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2022 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2024 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -20,9 +20,9 @@
 */
 #include "SDL_internal.h"
 
-#if SDL_THREAD_NGAGE
+#ifdef SDL_THREAD_NGAGE
 
-/* N-Gage thread management routines for SDL */
+// N-Gage thread management routines for SDL
 
 #include <e32std.h>
 
@@ -57,20 +57,22 @@ int CreateUnique(TInt (*aFunc)(const TDesC &aName, TAny *, TAny *), TAny *aPtr1,
     return status;
 }
 
-int SDL_SYS_CreateThread(SDL_Thread *thread)
+bool SDL_SYS_CreateThread(SDL_Thread *thread,
+                          SDL_FunctionPointer pfnBeginThread,
+                          SDL_FunctionPointer pfnEndThread)
 {
     RThread rthread;
 
     TInt status = CreateUnique(NewThread, &rthread, thread);
     if (status != KErrNone) {
-        delete (((RThread *)(thread->handle)));
+        delete (RThread *)thread->handle;
         thread->handle = NULL;
         return SDL_SetError("Not enough resources to create thread");
     }
 
     rthread.Resume();
     thread->handle = rthread.Handle();
-    return 0;
+    return true;
 }
 
 void SDL_SYS_SetupThread(const char *name)
@@ -78,17 +80,16 @@ void SDL_SYS_SetupThread(const char *name)
     return;
 }
 
-SDL_threadID
-SDL_ThreadID(void)
+SDL_ThreadID SDL_GetCurrentThreadID(void)
 {
     RThread current;
     TThreadId id = current.Id();
     return id;
 }
 
-int SDL_SYS_SetThreadPriority(SDL_ThreadPriority priority)
+bool SDL_SYS_SetThreadPriority(SDL_ThreadPriority priority)
 {
-    return 0;
+    return true;
 }
 
 void SDL_SYS_WaitThread(SDL_Thread *thread)
@@ -108,7 +109,4 @@ void SDL_SYS_DetachThread(SDL_Thread *thread)
     return;
 }
 
-#endif /* SDL_THREAD_NGAGE */
-
-/* vim: ts=4 sw=4
- */
+#endif // SDL_THREAD_NGAGE
